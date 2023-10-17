@@ -1,113 +1,238 @@
-import Image from 'next/image'
+"use client";
+
+import OSDViewer, {
+  ScalebarLocation,
+  ViewportProps,
+  TooltipOverlayProps,
+  CanvasOverlayProps,
+  MouseTrackerProps,
+  OSDViewerRef,
+} from "@lunit/osd-react-renderer";
+import { MouseEvent, useCallback, useRef, useState } from "react";
+
+import {
+  DEFAULT_CONTROLLER_MAX_ZOOM,
+  DEFAULT_CONTROLLER_MIN_ZOOM,
+  DEMO_MPP,
+  MICRONS_PER_METER,
+  RADIUS_UM,
+  VIEWER_OPTIONS,
+  WHEEL_BUTTON,
+} from "./consts";
+import OpenSeadragon from "openseadragon";
+import { Viewport } from "next/dist/lib/metadata/types/extra-types";
+
+const tiledImageSource = {
+  url: "https://io.api.scope.lunit.io/slides/dzi/metadata/?file=01d0f99c-b4fa-41c1-9059-4c2ee5d4cdf1%2F97e1f14b-d883-409a-83c6-afa97513c146%2FBladder_cancer_01.svs",
+  tileUrlBase:
+    "https://io.api.scope.lunit.io/slides/images/dzi/01d0f99c-b4fa-41c1-9059-4c2ee5d4cdf1%2F97e1f14b-d883-409a-83c6-afa97513c146%2FBladder_cancer_01.svs",
+};
 
 export default function Home() {
+  const [viewportZoom, setViewportZoom] = useState<number>(1);
+  const [refPoint, setRefPoint] = useState<OpenSeadragon.Point>();
+  const [rotation, setRotation] = useState<number>(0);
+  const [scaleFactor, setScaleFactor] = useState<number>(1);
+
+  const canvasOverlayRef = useRef(null);
+  const osdViewerRef = useRef<OSDViewerRef>(null);
+  const lastPoint = useRef<OpenSeadragon.Point | null>(null);
+  const prevDelta = useRef<OpenSeadragon.Point | null>(null);
+  const prevTime = useRef<number>(-1);
+
+  const refreshScaleFactor = useCallback(() => {
+    const viewer = osdViewerRef.current?.viewer;
+    if (!viewer) {
+      return;
+    }
+    const imageWidth = viewer.world.getItemAt(0).getContentSize().x;
+    const microscopeWidth1x = ((imageWidth * DEMO_MPP) / 25400) * 96 * 10;
+    const viewportWidth = viewer.viewport.getContainerSize().x;
+    setScaleFactor(microscopeWidth1x / viewportWidth);
+  }, []);
+
+  const cancelPanning = useCallback(() => {
+    console.log("called");
+    lastPoint.current = null;
+    prevDelta.current = null;
+    prevTime.current = -1;
+  }, []);
+
+  const onCanvasOverlayRedraw: NonNullable<CanvasOverlayProps["onRedraw"]> = (
+    canvas: HTMLCanvasElement
+  ) => {
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(50, 50, 5000, 5000);
+    }
+  };
+
+  const onTooltipOverlayRedraw: NonNullable<
+    TooltipOverlayProps["onRedraw"]
+  > = ({ tooltipCoord, overlayCanvasEl, viewer }) => {
+    const ctx = overlayCanvasEl.getContext("2d");
+    if (ctx && tooltipCoord) {
+      const radiusPx = RADIUS_UM / DEMO_MPP;
+      const sizeRect = new OpenSeadragon.Rect(0, 0, 2, 2);
+      const lineWidth = viewer.viewport.viewportToImageRectangle(
+        viewer.viewport.viewerElementToViewportRectangle(sizeRect)
+      ).width;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.arc(tooltipCoord.x, tooltipCoord.y, radiusPx, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  };
+
+  const handleViewportOpen = useCallback<
+    NonNullable<ViewportProps["onOpen"]>
+  >(() => {
+    refreshScaleFactor();
+  }, [refreshScaleFactor]);
+
+  const handleViewportResize = useCallback<
+    NonNullable<ViewportProps["onResize"]>
+  >(() => {
+    refreshScaleFactor();
+  }, [refreshScaleFactor]);
+
+  const handleViewportRotate = useCallback<
+    NonNullable<ViewportProps["onRotate"]>
+  >(
+    ({
+      eventSource: viewer,
+      degrees,
+    }: {
+      eventSource: OpenSeadragon<Viewport>;
+      degrees: number;
+    }) => {
+      if (viewer == null || degrees == null) {
+        return;
+      }
+      refreshScaleFactor();
+      setRotation(degrees);
+    },
+    [refreshScaleFactor]
+  );
+
+  const handleViewportZoom = useCallback<NonNullable<ViewportProps["onZoom"]>>(
+    ({
+      eventSource: viewer,
+      zoom,
+      refPoint,
+    }: {
+      eventSource: OpenSeadragon<Viewport>;
+      zoom: number;
+      refPoint: OpenSeadragon.Point;
+    }) => {
+      if (viewer == null || zoom == null) {
+        return;
+      }
+
+      setViewportZoom(zoom);
+      setRefPoint(refPoint || undefined);
+    },
+    []
+  );
+
+  const handleMouseTrackerLeave = useCallback<
+    NonNullable<MouseTrackerProps["onLeave"]>
+  >(() => {
+    // temporary fix about malfunction(?) of mouseup and onNonPrimaryRelease event
+    cancelPanning?.();
+  }, [cancelPanning]);
+
+  const handleMouseTrackerNonPrimaryPress = useCallback<
+    NonNullable<MouseTrackerProps["onNonPrimaryPress"]>
+  >((event: OpenSeadragon<MouseEvent>) => {
+    if (event.button === WHEEL_BUTTON) {
+      lastPoint.current = event.position?.clone() || null;
+      prevDelta.current = new OpenSeadragon.Point(0, 0);
+      prevTime.current = 0;
+    }
+  }, []);
+
+  const handleMouseTrackerNonPrimaryRelease = useCallback<
+    NonNullable<MouseTrackerProps["onNonPrimaryRelease"]>
+  >(
+    (event: OpenSeadragon<MouseEvent>) => {
+      if (event.button === WHEEL_BUTTON) {
+        cancelPanning();
+      }
+    },
+    [cancelPanning]
+  );
+
+  const handleMouseTrackerMove = useCallback<
+    NonNullable<MouseTrackerProps["onMove"]>
+  >((event: OpenSeadragon<MouseEvent>) => {
+    const viewer = osdViewerRef.current?.viewer;
+    const throttle = 150;
+    if (viewer && viewer.viewport) {
+      if (lastPoint.current && event.position) {
+        const deltaPixels = lastPoint.current.minus(event.position);
+        const deltaPoints = viewer.viewport.deltaPointsFromPixels(deltaPixels);
+        lastPoint.current = event.position.clone();
+        if (!throttle || throttle < 0) {
+          viewer.viewport.panBy(deltaPoints);
+        } else if (prevDelta.current) {
+          const newTimeDelta = Date.now() - prevTime.current;
+          const newDelta = prevDelta.current.plus(deltaPoints);
+          if (newTimeDelta > throttle) {
+            viewer.viewport.panBy(newDelta);
+            prevDelta.current = new OpenSeadragon.Point(0, 0);
+            prevTime.current = 0;
+          } else {
+            prevDelta.current = newDelta;
+            prevTime.current = newTimeDelta;
+          }
+        }
+      }
+    }
+  }, []);
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+    <main className="flex min-h-screen flex-col items-center justify-between h-screen">
+      <OSDViewer
+        options={VIEWER_OPTIONS}
+        ref={osdViewerRef}
+        className="w-[100%] h-[100%]"
+      >
+        <viewport
+          zoom={viewportZoom}
+          refPoint={refPoint}
+          rotation={rotation}
+          onOpen={handleViewportOpen}
+          onResize={handleViewportResize}
+          onRotate={handleViewportRotate}
+          onZoom={handleViewportZoom}
+          maxZoomLevel={DEFAULT_CONTROLLER_MAX_ZOOM * scaleFactor}
+          minZoomLevel={DEFAULT_CONTROLLER_MIN_ZOOM * scaleFactor}
         />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+        <tiledImage {...tiledImageSource} />
+        <scalebar
+          pixelsPerMeter={MICRONS_PER_METER / DEMO_MPP}
+          xOffset={10}
+          yOffset={30}
+          barThickness={3}
+          color="#443aff"
+          fontColor="#53646d"
+          backgroundColor={"rgba(255,255,255,0.5)"}
+          location={ScalebarLocation.BOTTOM_RIGHT}
+        />
+        <canvasOverlay
+          ref={canvasOverlayRef}
+          onRedraw={onCanvasOverlayRedraw}
+        />
+        <tooltipOverlay onRedraw={onTooltipOverlayRedraw} />
+        <mouseTracker
+          onLeave={handleMouseTrackerLeave}
+          onNonPrimaryPress={handleMouseTrackerNonPrimaryPress}
+          onNonPrimaryRelease={handleMouseTrackerNonPrimaryRelease}
+          onMove={handleMouseTrackerMove}
+        />
+      </OSDViewer>
     </main>
-  )
+  );
 }
