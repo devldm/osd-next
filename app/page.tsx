@@ -21,6 +21,7 @@ import {
 } from "./consts";
 import OpenSeadragon from "openseadragon";
 import { Viewport } from "next/dist/lib/metadata/types/extra-types";
+import LeftBar from "./components/LeftBar";
 
 const tiledImageSource = {
   url: "https://io.api.scope.lunit.io/slides/dzi/metadata/?file=01d0f99c-b4fa-41c1-9059-4c2ee5d4cdf1%2F97e1f14b-d883-409a-83c6-afa97513c146%2FBladder_cancer_01.svs",
@@ -193,11 +194,12 @@ export default function Home() {
     }
   }, []);
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between h-screen">
+    <main className="flex items-center h-screen">
+      <LeftBar />
       <OSDViewer
         options={VIEWER_OPTIONS}
         ref={osdViewerRef}
-        className="w-[100%] h-[100%]"
+        className="h-[100%] z-1 flex-1"
       >
         <viewport
           zoom={viewportZoom}
