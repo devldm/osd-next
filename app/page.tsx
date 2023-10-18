@@ -53,7 +53,6 @@ export default function Home() {
   }, []);
 
   const cancelPanning = useCallback(() => {
-    console.log("called");
     lastPoint.current = null;
     prevDelta.current = null;
     prevTime.current = -1;

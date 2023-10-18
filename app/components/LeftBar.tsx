@@ -1,5 +1,17 @@
 import Link from "next/link";
 
+interface link {
+  linkText: string;
+  href: string;
+}
+
+const pages: link[] = [
+  { linkText: "Test", href: "#" },
+  { linkText: "WebGL", href: "#" },
+  { linkText: "Other", href: "#" },
+  { linkText: "Custom Image", href: "#" },
+];
+
 export default function LeftBar() {
   return (
     <div className="h-full w-[12%] bg-black absolute inset-y-0 left-0 z-20">
@@ -7,30 +19,17 @@ export default function LeftBar() {
         lunit-osd-next
       </p>
       <ul className="z-50 flex flex-col w-full items-center text-xl text-white px-4 gap-4">
-        <Link
-          href={"#"}
-          className="w-full text-center p-4 rounded-xl bg-green-600"
-        >
-          Test
-        </Link>
-        <Link
-          href={"#"}
-          className="w-full text-center p-4 rounded-xl bg-green-800"
-        >
-          WebGL
-        </Link>
-        <Link
-          href={"#"}
-          className="w-full text-center p-4 rounded-xl bg-green-800"
-        >
-          Other
-        </Link>
-        <Link
-          href={"#"}
-          className="w-full text-center p-4 rounded-xl bg-green-800"
-        >
-          Custom Image
-        </Link>
+        {pages.map((page) => {
+          return (
+            <Link
+              key={page.linkText}
+              href={page.href}
+              className="w-full text-center p-4 rounded-xl bg-green-600"
+            >
+              {page.linkText}
+            </Link>
+          );
+        })}
       </ul>
       <div className="w-full bg-gray-600 h-[2px] my-6"></div>
       <p className="text-white text-center text-xl font-bold mb-4 uppercase">
