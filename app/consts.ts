@@ -30,3 +30,4 @@ export const TILED_IMAGE_SOURCE = {
   tileUrlBase:
     "https://io.api.scope.lunit.io/slides/images/dzi/01d0f99c-b4fa-41c1-9059-4c2ee5d4cdf1%2F97e1f14b-d883-409a-83c6-afa97513c146%2FBladder_cancer_01.svs",
 };
+const DEFAULT_ZOOM_LEVELS = [0, 0.5, 1, 2, 5, 10, 20, 40, 160];

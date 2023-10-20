@@ -115,7 +115,7 @@ export default function TestPage() {
 
   return (
     <main className="flex items-center h-screen">
-      <LeftBar />
+      <LeftBar viewportZoom={viewportZoom} />
       <OSDViewer options={VIEWER_OPTIONS} ref={osdViewerRef}>
         <viewport
           zoom={viewportZoom}

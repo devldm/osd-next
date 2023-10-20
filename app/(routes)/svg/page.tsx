@@ -159,6 +159,10 @@ export default function Svg() {
       }
     }
   }, []);
+
+  const updateViewportZoom = (zoomValue: number) => {
+    setViewportZoom(zoomValue);
+  };
   return (
     <main className="flex items-center h-screen">
       <div className="absolute flex flex-col items-center justify-center z-50 inset-y-0 right-0 gap-2">
@@ -184,7 +188,10 @@ export default function Svg() {
           svg sub 3
         </button>
       </div>
-      <LeftBar />
+      <LeftBar
+        viewportZoom={viewportZoom}
+        updateViewportZoom={updateViewportZoom}
+      />
       <OSDViewer
         options={VIEWER_OPTIONS}
         ref={osdViewerRef}

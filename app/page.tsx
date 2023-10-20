@@ -30,6 +30,10 @@ export default function Home() {
   const [rotation, setRotation] = useState<number>(0);
   const [scaleFactor, setScaleFactor] = useState<number>(1);
 
+  const updateViewportZoom = (zoomValue: number) => {
+    setViewportZoom(zoomValue);
+  };
+
   const canvasOverlayRef = useRef(null);
   const osdViewerRef = useRef<OSDViewerRef>(null);
   const lastPoint = useRef<OpenSeadragon.Point | null>(null);
@@ -189,7 +193,10 @@ export default function Home() {
   }, []);
   return (
     <main className="flex items-center h-screen">
-      <LeftBar />
+      <LeftBar
+        viewportZoom={viewportZoom}
+        updateViewportZoom={updateViewportZoom}
+      />
       <OSDViewer
         options={VIEWER_OPTIONS}
         ref={osdViewerRef}
