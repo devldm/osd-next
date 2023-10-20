@@ -49,17 +49,19 @@ export default function LeftBar({
         })}
       </ul>
       <div className="w-full bg-gray-600 h-[2px] my-6"></div>
-      <p className="text-white text-center text-xl font-bold mb-4 uppercase">
-        zoom
-      </p>
-
       {viewportZoom ? (
-        <ZoomController
-          zoom={viewportZoom}
-          minZoomLevel={DEFAULT_CONTROLLER_MIN_ZOOM}
-          maxZoomLevel={DEFAULT_CONTROLLER_MAX_ZOOM}
-          updateViewportZoom={updateViewportZoom}
-        />
+        <>
+          <p className="text-white text-center text-xl font-bold mb-4 uppercase">
+            zoom
+          </p>
+
+          <ZoomController
+            zoom={viewportZoom}
+            minZoomLevel={DEFAULT_CONTROLLER_MIN_ZOOM}
+            maxZoomLevel={DEFAULT_CONTROLLER_MAX_ZOOM}
+            updateViewportZoom={updateViewportZoom}
+          />
+        </>
       ) : null}
 
       {/* <div>
