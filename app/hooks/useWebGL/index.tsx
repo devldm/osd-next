@@ -1,8 +1,26 @@
+import { useState } from "react";
 import { circleSource, vertexAttributeConfig } from "./const";
 import { hexToRgbVector, makeColouredTiles, setProgram } from "./func";
 import { Origin, WebGLTileData } from "./types";
 
 function useWebGL() {
+  let [webGLColors, setWebGLColors] = useState<string[]>([
+    "#FF495C",
+    "#00BD9D",
+  ]);
+
+  const clearColors = () => {
+    setWebGLColors([]);
+  };
+
+  const updateColors = (color: string) => {
+    setWebGLColors(
+      webGLColors.includes(color)
+        ? webGLColors.filter((el) => el !== color)
+        : [...webGLColors, color]
+    );
+  };
+
   let program: WebGLProgram | undefined;
   let positionAttrLocation: number;
   let resolutionUniformLocation: WebGLUniformLocation | null;
@@ -108,7 +126,7 @@ function useWebGL() {
     }
     performance.mark("webgl-start");
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    const tiles = makeColouredTiles(300_000, 1000, 1400);
+    const tiles = makeColouredTiles(300_000, 1000, 1400, webGLColors);
     for (const tile of tiles) {
       drawWithWebGL(
         gl,
@@ -129,6 +147,8 @@ function useWebGL() {
 
   return {
     onWebGLOverlayRedraw,
+    updateColors,
+    clearColors,
   };
 }
 export default useWebGL;

@@ -133,24 +133,17 @@ export function makeRandomCoords(amt: number, hClip: number, wClip: number) {
 export function makeColouredTiles(
   coordCount: number,
   hSize: number,
-  wSize: number
+  wSize: number,
+  colors: string[]
 ) {
-  return [
-    {
+  return colors.map((color) => {
+    return {
       h: hSize,
       w: wSize,
       y: 0,
       x: 0,
-      color: "#00BD9D",
+      color: color,
       data: makeRandomCoords((coordCount / 10) * 7, hSize, wSize),
-    },
-    {
-      h: hSize,
-      w: wSize,
-      y: 0,
-      x: 0,
-      color: "#FF495C",
-      data: makeRandomCoords((coordCount / 10) * 3, hSize, wSize),
-    },
-  ];
+    };
+  });
 }
