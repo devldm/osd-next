@@ -25,11 +25,10 @@ export default function WebGL() {
   const [refPoint, setRefPoint] = useState<OpenSeadragon.Point>();
   const [rotation, setRotation] = useState<number>(0);
   const [scaleFactor, setScaleFactor] = useState<number>(1);
-
   const webGLOverlayRef = useRef(null);
   const osdViewerRef = useRef<OSDViewerRef>(null);
 
-  const { onWebGLOverlayRedraw } = useWebGL();
+  const { onWebGLOverlayRedraw, updateColors, clearColors } = useWebGL();
 
   const refreshScaleFactor = useCallback(() => {
     const viewer = osdViewerRef.current?.viewer;
@@ -132,6 +131,40 @@ export default function WebGL() {
         />
         <webGLOverlay ref={webGLOverlayRef} onRedraw={onWebGLOverlayRedraw} />
       </OSDViewer>
+      <div className="flex flex-col gap-4">
+        <button
+          className="p-4 bg-red-600 rounded-lg text-black"
+          onClick={() => {
+            updateColors("#FF495C");
+          }}
+        >
+          red
+        </button>
+        <button
+          className="p-4 bg-green-600 text-black rounded-lg"
+          onClick={() => {
+            updateColors("#00BD9D");
+          }}
+        >
+          green
+        </button>
+        <button
+          className={`p-4 bg-blue-600 rounded-lg text-black`}
+          onClick={() => {
+            updateColors("#00000ff");
+          }}
+        >
+          blue
+        </button>
+        <button
+          className="p-4 bg-slate-800 rounded-lg text-white"
+          onClick={() => {
+            clearColors();
+          }}
+        >
+          remove colors
+        </button>
+      </div>
     </main>
   );
 }
