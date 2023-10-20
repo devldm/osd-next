@@ -9,7 +9,7 @@ I also haven't worked on this style of project before (an openseadragon viewer) 
 
 ## Current progress screenshot 
 
-![Alt text](public/osd.png)
+![Alt text](public/osd-webgl.png)
 
 ## Getting Started
 
