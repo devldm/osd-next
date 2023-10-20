@@ -6,10 +6,12 @@ interface link {
 }
 
 const pages: link[] = [
-  { linkText: "Test", href: "#" },
-  { linkText: "WebGL", href: "#" },
-  { linkText: "Other", href: "#" },
-  { linkText: "Custom Image", href: "#" },
+  { linkText: "Home", href: "/" },
+  { linkText: "WebGL", href: "/webgl" },
+  { linkText: "Custom Image", href: "/custom-image" },
+  { linkText: "No overlay", href: "/no-overlay" },
+  { linkText: "Test page", href: "/test-page" },
+  { linkText: "svg", href: "/svg" },
 ];
 
 export default function LeftBar() {

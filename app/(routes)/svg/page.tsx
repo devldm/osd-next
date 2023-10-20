@@ -3,8 +3,6 @@
 import OSDViewer, {
   ScalebarLocation,
   ViewportProps,
-  TooltipOverlayProps,
-  CanvasOverlayProps,
   MouseTrackerProps,
   OSDViewerRef,
 } from "@lunit/osd-react-renderer";
@@ -15,22 +13,24 @@ import {
   DEFAULT_CONTROLLER_MIN_ZOOM,
   DEMO_MPP,
   MICRONS_PER_METER,
-  RADIUS_UM,
   TILED_IMAGE_SOURCE,
   VIEWER_OPTIONS,
   WHEEL_BUTTON,
-} from "./consts";
+} from "../../consts";
 import OpenSeadragon from "openseadragon";
 import { Viewport } from "next/dist/lib/metadata/types/extra-types";
-import LeftBar from "./components/LeftBar";
+import LeftBar from "../../components/LeftBar";
+import useSVG from "@/app/hooks/useSVG";
+import { usePathname } from "next/navigation";
 
-export default function Home() {
+export default function Svg() {
   const [viewportZoom, setViewportZoom] = useState<number>(1);
   const [refPoint, setRefPoint] = useState<OpenSeadragon.Point>();
   const [rotation, setRotation] = useState<number>(0);
   const [scaleFactor, setScaleFactor] = useState<number>(1);
 
-  const canvasOverlayRef = useRef(null);
+  const { setSVGSubVisibility, setSVGAllVisible } = useSVG();
+
   const osdViewerRef = useRef<OSDViewerRef>(null);
   const lastPoint = useRef<OpenSeadragon.Point | null>(null);
   const prevDelta = useRef<OpenSeadragon.Point | null>(null);
@@ -52,34 +52,6 @@ export default function Home() {
     prevDelta.current = null;
     prevTime.current = -1;
   }, []);
-
-  const onCanvasOverlayRedraw: NonNullable<CanvasOverlayProps["onRedraw"]> = (
-    canvas: HTMLCanvasElement
-  ) => {
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "#000";
-      ctx.fillRect(50, 50, 5000, 5000);
-    }
-  };
-
-  const onTooltipOverlayRedraw: NonNullable<
-    TooltipOverlayProps["onRedraw"]
-  > = ({ tooltipCoord, overlayCanvasEl, viewer }) => {
-    const ctx = overlayCanvasEl.getContext("2d");
-    if (ctx && tooltipCoord) {
-      const radiusPx = RADIUS_UM / DEMO_MPP;
-      const sizeRect = new OpenSeadragon.Rect(0, 0, 2, 2);
-      const lineWidth = viewer.viewport.viewportToImageRectangle(
-        viewer.viewport.viewerElementToViewportRectangle(sizeRect)
-      ).width;
-      ctx.lineWidth = lineWidth;
-      ctx.beginPath();
-      ctx.arc(tooltipCoord.x, tooltipCoord.y, radiusPx, 0, 2 * Math.PI);
-      ctx.closePath();
-      ctx.stroke();
-    }
-  };
 
   const handleViewportOpen = useCallback<
     NonNullable<ViewportProps["onOpen"]>
@@ -189,6 +161,29 @@ export default function Home() {
   }, []);
   return (
     <main className="flex items-center h-screen">
+      <div className="absolute flex flex-col items-center justify-center z-50 inset-y-0 right-0 gap-2">
+        <button onClick={setSVGAllVisible} className="font-bold">
+          svg visible
+        </button>
+        <button
+          onClick={() => setSVGSubVisibility(0)}
+          className="py-1 px-3 bg-slate-500 rounded-lg"
+        >
+          svg sub 1
+        </button>
+        <button
+          onClick={() => setSVGSubVisibility(1)}
+          className="py-1 px-3 bg-slate-500 rounded-lg"
+        >
+          svg sub 2
+        </button>
+        <button
+          onClick={() => setSVGSubVisibility(2)}
+          className="py-1 px-3 bg-slate-500 rounded-lg"
+        >
+          svg sub 3
+        </button>
+      </div>
       <LeftBar />
       <OSDViewer
         options={VIEWER_OPTIONS}
@@ -207,6 +202,13 @@ export default function Home() {
           minZoomLevel={DEFAULT_CONTROLLER_MIN_ZOOM * scaleFactor}
         />
         <tiledImage {...TILED_IMAGE_SOURCE} />
+        <svgOverlay />
+        <mouseTracker
+          onLeave={handleMouseTrackerLeave}
+          onNonPrimaryPress={handleMouseTrackerNonPrimaryPress}
+          onNonPrimaryRelease={handleMouseTrackerNonPrimaryRelease}
+          onMove={handleMouseTrackerMove}
+        />
         <scalebar
           pixelsPerMeter={MICRONS_PER_METER / DEMO_MPP}
           xOffset={10}
@@ -216,17 +218,6 @@ export default function Home() {
           fontColor="#53646d"
           backgroundColor={"rgba(255,255,255,0.5)"}
           location={ScalebarLocation.BOTTOM_RIGHT}
-        />
-        <canvasOverlay
-          ref={canvasOverlayRef}
-          onRedraw={onCanvasOverlayRedraw}
-        />
-        <tooltipOverlay onRedraw={onTooltipOverlayRedraw} />
-        <mouseTracker
-          onLeave={handleMouseTrackerLeave}
-          onNonPrimaryPress={handleMouseTrackerNonPrimaryPress}
-          onNonPrimaryRelease={handleMouseTrackerNonPrimaryRelease}
-          onMove={handleMouseTrackerMove}
         />
       </OSDViewer>
     </main>
