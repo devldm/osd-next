@@ -21,7 +21,6 @@ import OpenSeadragon from "openseadragon";
 import { Viewport } from "next/dist/lib/metadata/types/extra-types";
 import LeftBar from "../../components/LeftBar";
 import useSVG from "@/app/hooks/useSVG";
-import { usePathname } from "next/navigation";
 
 export default function Svg() {
   const [viewportZoom, setViewportZoom] = useState<number>(1);
